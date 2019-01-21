@@ -10,9 +10,22 @@ PROJECT_TAG_STATUS = [
 ]
 
 
-class Project(models.Model):
+class Namespace(models.Model):
     id = models.CharField(max_length=36, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = models.CharField(max_length=256, null=False, blank=False)
+
+    # 源制品仓库
+    registry_host = models.CharField(max_length=256, null=False, blank=False)
+    registry_username = models.CharField(max_length=256, null=True)
+    registry_password = models.CharField(max_length=128, null=True)
+
+    created_at = models.BigIntegerField(default=lambda: int(time.time()))
+    updated_at = models.BigIntegerField(default=lambda: int(time.time()))
+
+
+class Project(models.Model):
+    id = models.CharField(max_length=36, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = models.CharField(max_length=256, null=False, blank=False, unique=True)
 
     # 需要同步的镜像
     source_image = models.CharField(max_length=256, null=False, blank=False, db_index=True)
@@ -22,6 +35,8 @@ class Project(models.Model):
     # 源制品仓库
     registry_host = models.CharField(max_length=256, null=False, blank=False)
     registry_namespace = models.CharField(max_length=128, null=False, blank=True)
+    registry_username = models.CharField(max_length=256, null=True)
+    registry_password = models.CharField(max_length=128, null=True)
 
     created_at = models.BigIntegerField(default=lambda: int(time.time()))
     updated_at = models.BigIntegerField(default=lambda: int(time.time()))
