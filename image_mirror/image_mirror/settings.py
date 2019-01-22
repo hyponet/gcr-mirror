@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -121,3 +122,5 @@ TARGET_REGISTRY_URL = "daocloud.io"
 TARGET_REGISTRY_NAMESPACE = "gcr-mirror"
 TARGET_REGISTRY_USERNAME = os.getenv("TARGET_REGISTRY_USERNAME")
 TARGET_REGISTRY_PASSWORD = os.getenv("TARGET_REGISTRY_PASSWORD")
+CELERY_RESULT_BACKEND = 'django-db'
+CELERY_BROKER_URL = os.getenv("celery_broker_url", "amqp://guest:guest@192.168.31.7:30572")
