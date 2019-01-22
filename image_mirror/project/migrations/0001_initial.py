@@ -29,7 +29,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(default=common.utils.gen_uuid, max_length=36, primary_key=True, serialize=False)),
                 ('name', models.CharField(max_length=256, unique=True)),
-                ('project_name', models.CharField(max_length=256, unique=True)),
+                ('project_name', models.CharField(max_length=256, unique=False)),
                 ('namespace_id', models.CharField(db_index=True, max_length=36, null=True)),
                 ('source_image', models.CharField(db_index=True, max_length=256)),
                 ('target_image', models.CharField(db_index=True, max_length=256)),

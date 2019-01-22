@@ -34,6 +34,19 @@ def registry_validate(registry_host):
 
 
 class NamespaceManager(models.Manager):
+    def create_namespace(self, name, registry_host,
+                         registry_username, registry_password):
+        name = str(name).strip()
+        registry_host = str(registry_host).strip()
+        try:
+            self.get(name=name, registry_host=registry_host)
+            return
+        except models.ObjectDoesNotExist:
+            pass
+        self.create(name=name, registry_host=registry_host,
+                    registry_username=registry_username,
+                    registry_password=registry_password)
+
     def flush_namespace_project(self):
         LOG.debug("Start namespace flush.")
         last_flush_at = int(time.time() - FLUSH_NAMESPACE_MAX_TIME)
@@ -98,12 +111,25 @@ class Namespace(models.Model):
 
 class ProjectManager(models.Manager):
 
+    def create_project(self, name, project_name, registry_host,
+                       registry_namespace, registry_username, registry_password):
+        name = str(name).strip()
+        registry_host = str(registry_host).strip()
+        try:
+            self.get(name=name)
+            return
+        except models.ObjectDoesNotExist:
+            pass
+        self.create(name=name, project_name=project_name,
+                    registry_host=registry_host,
+                    registry_namespace=registry_namespace,
+                    registry_username=registry_username,
+                    registry_password=registry_password)
+
     def create_project_by_namespace(self, name, namespace, project_name):
         try:
-            project = self.filter(name=name).first()
-            if project:
-                LOG.debug("Project[{}] existed, skip.".format(name))
-                return
+            self.get(name=name)
+            return
         except models.ObjectDoesNotExist:
             LOG.debug("Project[{}] not found, try create.".format(name))
         self.create(name=name, project_name=project_name,
@@ -132,8 +158,8 @@ class Project(models.Model):
     id = models.CharField(max_length=36, primary_key=True, default=utils.gen_uuid)
     name = models.CharField(max_length=256, null=False, blank=False, unique=True)
     # 源 Registry 中的项目名
-    project_name = models.CharField(max_length=256, null=False, blank=False, unique=True)
-    namespace_id = models.CharField(max_length=36, db_index=True, null=True)
+    project_name = models.CharField(max_length=256, null=False, blank=False)
+    namespace_id = models.CharField(max_length=36, db_index=True, null=True, blank=True)
 
     # 需要同步的镜像
     source_image = models.CharField(max_length=256, null=False, blank=False, db_index=True)
@@ -208,10 +234,8 @@ class Project(models.Model):
 class TagManager(models.Manager):
     def create_tag_by_project(self, project, name):
         try:
-            tag = self.filter(project_id=project.id, name=name).first()
-            if tag:
-                LOG.debug("Tag[{}] existed in Project {}, skip.".format(name, project.name))
-                return
+            self.get(project_id=project.id, name=name)
+            return
         except models.ObjectDoesNotExist:
             LOG.debug("Tag[{}] not found in Project {}, try create.".format(name, project.name))
 

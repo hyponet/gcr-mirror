@@ -115,6 +115,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Sync Task Config
+TARGET_CONFIG_FILE = os.path.join(BASE_DIR, "target.yml")
 FLUSH_NAMESPACE_MAX_TIME = 60 * 60 * 24
 FLUSH_PROJECT_MAX_TIME = 60 * 60 * 24
 MAX_MIGRATE_TASK_PRE_PROJECT = 15
