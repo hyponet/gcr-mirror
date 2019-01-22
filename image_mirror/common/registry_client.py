@@ -48,6 +48,16 @@ class GcrClient(requests.Session):
             return response.json()
         return response.text
 
+    def is_valid(self):
+        path = "/v2/"
+        rsp = self.get(self.url(path))
+        try:
+            rsp.json()
+        except ValueError as e:
+            LOG.error(e)
+            return False
+        return True
+
     def get_project_by_namespace(self, namespace):
         path = "/v2/{namespace}/tags/list".format(namespace=namespace)
         result = self.result_or_raise(self.get(self.url(path)))
