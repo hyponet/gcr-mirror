@@ -1,24 +1,34 @@
+import threading
 from django.contrib import admin
 
 from .models import Namespace, Project, Tag
 
 
 def flush_namespace(modeladmin, request, queryset):
-    namespaces = queryset.all()
-    for n in namespaces:
-        n.update_projects()
+    def _async_flush(namespaces):
+        for n in namespaces:
+            n.update_projects()
+
+    _namespaces = queryset.all()
+    threading.Thread(target=_async_flush, args=(_namespaces,)).start()
 
 
 def flush_project(modeladmin, request, queryset):
-    projects = queryset.all()
-    for p in projects:
-        p.update_project_tags()
+    def _async_flush(projects):
+        for p in projects:
+            p.update_project_tags()
+
+    _projects = queryset.all()
+    threading.Thread(target=_async_flush, args=(_projects,)).start()
 
 
 def try_migrate_image(modeladmin, request, queryset):
-    tags = queryset.all()
-    for t in tags:
-        t.migrate()
+    def _async_flush(tags):
+        for t in tags:
+            t.migrate()
+
+    _tags = queryset.all()
+    threading.Thread(target=_async_flush, args=(_tags,)).start()
 
 
 flush_namespace.short_description = "Flush selected namespace projects"

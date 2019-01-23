@@ -27,13 +27,15 @@ class Command(BaseCommand):
                 Project.objects.create_project(
                     name=p_name,
                     project_name=project['project_name'],
-                    registry_host=projects['registry_host'],
+                    registry_host=project['registry_host'],
                     registry_namespace=project.get("registry_namespace", ""),
                     registry_username=project.get("registry_username", ""),
                     registry_password=project.get("registry_password", ""),
                 )
 
             for n_name, namespace in namespaces.items():
+                if namespace['registry_host'] != "https://gcr.io":
+                    raise CommandError("Do not support others.")
                 Namespace.objects.create_namespace(
                     name=n_name,
                     registry_host=namespace['registry_host'],
@@ -41,6 +43,6 @@ class Command(BaseCommand):
                     registry_password=namespace.get("registry_password", ""),
                 )
         except KeyError as e:
-            CommandError("Config error, miss key: {}".format(e))
+            raise CommandError("Config error, miss key: {}".format(e))
 
         self.stdout.write(self.style.SUCCESS('Load config successfully.'))
