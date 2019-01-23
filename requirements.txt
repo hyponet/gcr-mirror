@@ -10,6 +10,9 @@ Django==2.1.5
 django-celery-results==1.0.4
 docker==3.7.0
 docker-pycreds==0.4.0
+gevent==1.4.0
+greenlet==0.4.15
+gunicorn==19.9.0
 idna==2.8
 ipython==7.2.0
 ipython-genutils==0.2.0
