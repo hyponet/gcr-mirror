@@ -77,7 +77,7 @@ WSGI_APPLICATION = 'image_mirror.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': os.path.join(BASE_DIR, 'data/db.sqlite3'),
     }
 }
 
@@ -116,6 +116,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'data/static'),
 
 # Sentry
 if os.getenv("CONTROLLER_SENTRY_DSN"):
@@ -134,4 +135,4 @@ TARGET_REGISTRY_NAMESPACE = "gcr-mirror"
 TARGET_REGISTRY_USERNAME = os.getenv("TARGET_REGISTRY_USERNAME")
 TARGET_REGISTRY_PASSWORD = os.getenv("TARGET_REGISTRY_PASSWORD")
 CELERY_RESULT_BACKEND = 'django-db'
-CELERY_BROKER_URL = os.getenv("celery_broker_url")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")
