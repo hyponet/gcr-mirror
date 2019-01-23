@@ -1,23 +1,12 @@
 from __future__ import absolute_import, unicode_literals
-import os
 import json
-from celery import Celery
 import docker
 from docker.errors import DockerException
+from django.conf import settings
 
 from project.models import Tag, Project
-from image_mirror.settings import TARGET_REGISTRY_USERNAME, TARGET_REGISTRY_PASSWORD
 
-# set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'image_mirror.settings')
-
-app = Celery('image_mirror')
-
-# Using a string here means the worker doesn't have to serialize
-# the configuration object to child processes.
-# - namespace='CELERY' means all celery-related configuration keys
-#   should have a `CELERY_` prefix.
-app.config_from_object('django.conf:settings', namespace='CELERY')
+from image_mirror.celery import app as celery_app
 
 docker_client = docker.DockerClient(base_url='unix://var/run/docker.sock')
 docker.from_env()
@@ -42,7 +31,7 @@ class ImageTagError(ImageError):
     error_id = "IMAGE_TAG_ERROR"
 
 
-@app.task(bind=True, default_retry_delay=300, max_retries=3)
+@celery_app.task(bind=True, default_retry_delay=300, max_retries=3)
 def sync_image(self, project_id, tag_id):
     tag = Tag.objects.get(tag_id=tag_id)
     project = Project.objects.get(project_id=project_id)
@@ -74,8 +63,8 @@ def pull_image_from_source(project, tag):
     tag_name = tag.name or "latest"
     logs = []
     auth = {
-        "username": TARGET_REGISTRY_USERNAME,
-        "password": TARGET_REGISTRY_PASSWORD,
+        "username": settings.TARGET_REGISTRY_USERNAME,
+        "password": settings.TARGET_REGISTRY_PASSWORD,
     }
     try:
         for line in docker_client.api.pull(project.source_image,

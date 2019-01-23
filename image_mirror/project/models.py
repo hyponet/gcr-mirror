@@ -4,7 +4,7 @@ import logging
 from django.db import models
 from django.conf import settings
 
-from image_mirror.common.registry_client import GcrClient
+from common.registry_client import GcrClient
 
 LOG = logging.getLogger(__name__)
 FLUSH_NAMESPACE_MAX_TIME = settings.FLUSH_NAMESPACE_MAX_TIME
