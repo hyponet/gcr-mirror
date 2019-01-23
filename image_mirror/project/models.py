@@ -55,6 +55,8 @@ class NamespaceManager(models.Manager):
         for n in _namespaces:
             try:
                 n.update_projects()
+                # 防止 ban
+                time.sleep(1)
             except Exception as e:
                 LOG.error("Flush namespaces[{}] error: {}"
                           .format(n.id, e), exc_info=True)
@@ -146,6 +148,8 @@ class ProjectManager(models.Manager):
         LOG.debug("Last flush at: {}".format(last_flush_at))
         _projects = self.filter(updated_at__lte=last_flush_at).all()
         for p in _projects:
+            # 防止 ban
+            time.sleep(1)
             p.update_project_tags()
 
         LOG.debug("Flush project finish.")
@@ -273,7 +277,8 @@ class Tag(models.Model):
         if self.status == "synced":
             return
 
-        # TODO 调用 Worker 的方法
+        from worker import sync_image
+        sync_image.delay(self.project_id, self.id)
 
     def save(self, *args, **kwargs):
         self.updated_at = int(time.time())
