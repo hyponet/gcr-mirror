@@ -1,9 +1,10 @@
-import uuid
 import time
 import logging
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
+from common import utils
 from common.registry_client import GcrClient
 
 LOG = logging.getLogger(__name__)
@@ -20,7 +21,32 @@ PROJECT_TAG_STATUS = [
 ]
 
 
+def registry_validate(registry_host):
+    if not registry_host:
+        raise ValidationError("registry host can not set null.")
+    if not (str(registry_host).startswith("https://")
+            or str(registry_host).startswith("http://")):
+        raise ValidationError("registry host must start with http(s)://")
+
+    gcr_client = GcrClient(registry_host)
+    if not gcr_client.is_valid():
+        raise ValidationError("registry host error.")
+
+
 class NamespaceManager(models.Manager):
+    def create_namespace(self, name, registry_host,
+                         registry_username, registry_password):
+        name = str(name).strip()
+        registry_host = str(registry_host).strip()
+        try:
+            self.get(name=name, registry_host=registry_host)
+            return
+        except models.ObjectDoesNotExist:
+            pass
+        self.create(name=name, registry_host=registry_host,
+                    registry_username=registry_username,
+                    registry_password=registry_password)
+
     def flush_namespace_project(self):
         LOG.debug("Start namespace flush.")
         last_flush_at = int(time.time() - FLUSH_NAMESPACE_MAX_TIME)
@@ -36,53 +62,74 @@ class NamespaceManager(models.Manager):
 
 
 class Namespace(models.Model):
-    id = models.CharField(max_length=36, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = models.CharField(max_length=36, primary_key=True, default=utils.gen_uuid)
     name = models.CharField(max_length=256, null=False, blank=False)
 
     # 源制品仓库
-    registry_host = models.CharField(max_length=256, null=False,
-                                     blank=False, default="https://gcr.io")
-    registry_username = models.CharField(max_length=256, null=True)
-    registry_password = models.CharField(max_length=128, null=True)
+    registry_host = models.CharField(max_length=256, null=False, default="https://gcr.io",
+                                     validators=[registry_validate])
+    registry_username = models.CharField(max_length=256, null=True, blank=True)
+    registry_password = models.CharField(max_length=128, null=True, blank=True)
 
-    created_at = models.BigIntegerField(default=lambda: int(time.time()))
+    created_at = models.BigIntegerField(default=utils.get_time)
     updated_at = models.BigIntegerField(default=0)
 
     objects = NamespaceManager()
 
     def update_projects(self):
         registry_host = str(self.registry_host)
-        if registry_host.startswith("http"):
-            _, registry = registry_host.split("//")
-        else:
-            raise ValueError("registry_host error: {}".format(registry_host))
 
         gcr_client = GcrClient(registry_host)
         projects = gcr_client.get_project_by_namespace(self.name)
         for p in projects:
             name = "{namespace}-{project_name}" \
                 .format(namespace=self.name, project_name=p)
-            source_image = "{registry}/{namespace}/{project_name}" \
-                .format(registry=registry, namespace=self.name, project_name=p)
-            target_image = "{registry}/{namespace}/{project_name}" \
-                .format(registry=TARGET_REGISTRY_URL,
-                        namespace=TARGET_REGISTRY_NAMESPACE,
-                        project_name=name)
             Project.objects.create_project_by_namespace(
-                name, self, p, source_image, target_image)
-        self.updated_at = int(time.time())
+                name, self, p)
         self.save()
         LOG.info("Updated namespace: {}".format(self.name))
+
+    def save(self, *args, **kwargs):
+        self.updated_at = int(time.time())
+        super(Namespace, self).save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        Project.objects.filter(namespace_id=self.id).delete()
+        super(Namespace, self).delete(*args, **kwargs)
+
+    @property
+    def create_time(self):
+        return utils.timestamp2datetime(self.created_at)
+
+    @property
+    def update_time(self):
+        return utils.timestamp2datetime(self.updated_at)
+
+    def __str__(self):
+        return "Namespace [{}]".format(self.name)
 
 
 class ProjectManager(models.Manager):
 
-    def create_project_by_namespace(self, name, namespace, project_name, source_image, target_image):
+    def create_project(self, name, project_name, registry_host,
+                       registry_namespace, registry_username, registry_password):
+        name = str(name).strip()
+        registry_host = str(registry_host).strip()
         try:
-            project = self.filter(name=name).first()
-            if project:
-                LOG.debug("Project[{}] existed, skip.".format(name))
-                return
+            self.get(name=name)
+            return
+        except models.ObjectDoesNotExist:
+            pass
+        self.create(name=name, project_name=project_name,
+                    registry_host=registry_host,
+                    registry_namespace=registry_namespace,
+                    registry_username=registry_username,
+                    registry_password=registry_password)
+
+    def create_project_by_namespace(self, name, namespace, project_name):
+        try:
+            self.get(name=name)
+            return
         except models.ObjectDoesNotExist:
             LOG.debug("Project[{}] not found, try create.".format(name))
         self.create(name=name, project_name=project_name,
@@ -90,9 +137,8 @@ class ProjectManager(models.Manager):
                     registry_host=namespace.registry_host,
                     registry_namespace=namespace.name,
                     registry_username=namespace.registry_username,
-                    registry_password=namespace.registry_password,
-                    source_image=source_image, target_image=target_image)
-        LOG.info("Created Project: {} to {}".format(source_image, target_image))
+                    registry_password=namespace.registry_password)
+        LOG.info("Created Project: {}".format(name))
 
     def flush_projects_tag(self):
         LOG.debug("Start project flush.")
@@ -109,11 +155,11 @@ class ProjectManager(models.Manager):
 
 
 class Project(models.Model):
-    id = models.CharField(max_length=36, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = models.CharField(max_length=36, primary_key=True, default=utils.gen_uuid)
     name = models.CharField(max_length=256, null=False, blank=False, unique=True)
     # 源 Registry 中的项目名
-    project_name = models.CharField(max_length=256, null=False, blank=False, unique=True)
-    namespace_id = models.CharField(max_length=36, db_index=True, null=True)
+    project_name = models.CharField(max_length=256, null=False, blank=False)
+    namespace_id = models.CharField(max_length=36, db_index=True, null=True, blank=True)
 
     # 需要同步的镜像
     source_image = models.CharField(max_length=256, null=False, blank=False, db_index=True)
@@ -121,13 +167,13 @@ class Project(models.Model):
     target_image = models.CharField(max_length=256, null=False, blank=False, db_index=True)
 
     # 源制品仓库
-    registry_host = models.CharField(max_length=256, null=False,
-                                     default="https://gcr.io", blank=False)
+    registry_host = models.CharField(max_length=256, null=False, default="https://gcr.io",
+                                     validators=[registry_validate])
     registry_namespace = models.CharField(max_length=128, null=False, blank=True, default="")
-    registry_username = models.CharField(max_length=256, null=True)
-    registry_password = models.CharField(max_length=128, null=True)
+    registry_username = models.CharField(max_length=256, null=True, blank=True, default="")
+    registry_password = models.CharField(max_length=128, null=True, blank=True, default="")
 
-    created_at = models.BigIntegerField(default=lambda: int(time.time()))
+    created_at = models.BigIntegerField(default=utils.get_time)
     updated_at = models.BigIntegerField(default=0)
 
     objects = ProjectManager()
@@ -138,18 +184,58 @@ class Project(models.Model):
             self.project_name, namespace=self.registry_namespace or None)
         for t in tags:
             Tag.objects.create_tag_by_project(self, t)
-        self.updated_at = int(time.time())
         self.save()
         LOG.info("Updated project: {}".format(self.name))
+
+    def save(self, *args, **kwargs):
+        _, registry = str(self.registry_host).split("//")
+        if self.registry_namespace:
+            source_image = "{registry}/{namespace}/{project_name}" \
+                .format(registry=registry, namespace=self.registry_namespace,
+                        project_name=self.project_name)
+        else:
+            source_image = "{registry}/{project_name}" \
+                .format(registry=registry, project_name=self.project_name)
+        target_image = "{registry}/{namespace}/{project_name}" \
+            .format(registry=TARGET_REGISTRY_URL,
+                    namespace=TARGET_REGISTRY_NAMESPACE,
+                    project_name=self.name)
+        if (self.source_image and self.source_image != source_image) \
+                or (self.target_image and self.target_image != target_image):
+            # 更换名称，Tag 删掉重新同步
+            Tag.objects.filter(project_id=self.id).delete()
+
+        self.source_image = source_image
+        self.target_image = target_image
+
+        self.updated_at = int(time.time())
+        super(Project, self).save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        Tag.objects.filter(project_id=self.id).delete()
+        super(Project, self).delete(*args, **kwargs)
+
+    @property
+    def tag_count(self):
+        return Tag.objects.filter(project_id=self.id).count()
+
+    @property
+    def create_time(self):
+        return utils.timestamp2datetime(self.created_at)
+
+    @property
+    def update_time(self):
+        return utils.timestamp2datetime(self.updated_at)
+
+    def __str__(self):
+        return "Project [{}]".format(self.name)
 
 
 class TagManager(models.Manager):
     def create_tag_by_project(self, project, name):
         try:
-            tag = self.filter(project_id=project.id, name=name).first()
-            if tag:
-                LOG.debug("Tag[{}] existed in Project {}, skip.".format(name, project.name))
-                return
+            self.get(project_id=project.id, name=name)
+            return
         except models.ObjectDoesNotExist:
             LOG.debug("Tag[{}] not found in Project {}, try create.".format(name, project.name))
 
@@ -167,7 +253,7 @@ class TagManager(models.Manager):
 
 
 class Tag(models.Model):
-    id = models.CharField(max_length=36, primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = models.CharField(max_length=36, primary_key=True, default=utils.gen_uuid)
     name = models.CharField(max_length=256, null=False, blank=False)
 
     project_id = models.CharField(max_length=36, null=False, blank=False, db_index=True)
@@ -178,8 +264,8 @@ class Tag(models.Model):
                               choices=PROJECT_TAG_STATUS, default="pending")
     error_message = models.TextField()
 
-    created_at = models.BigIntegerField(default=lambda: int(time.time()))
-    updated_at = models.BigIntegerField(default=lambda: int(time.time()))
+    created_at = models.BigIntegerField(default=utils.get_time)
+    updated_at = models.BigIntegerField(default=utils.get_time)
 
     objects = TagManager()
 
@@ -188,3 +274,25 @@ class Tag(models.Model):
             return
 
         # TODO 调用 Worker 的方法
+
+    def save(self, *args, **kwargs):
+        self.updated_at = int(time.time())
+        super(Tag, self).save(*args, **kwargs)
+
+    @property
+    def create_time(self):
+        return utils.timestamp2datetime(self.created_at)
+
+    @property
+    def update_time(self):
+        return utils.timestamp2datetime(self.updated_at)
+
+    @property
+    def project(self):
+        try:
+            return Project.objects.get(id=self.project_id)
+        except models.ObjectDoesNotExist:
+            return None
+
+    def __str__(self):
+        return "Tag [{}]".format(self.name)

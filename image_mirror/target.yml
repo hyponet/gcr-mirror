@@ -1,0 +1,77 @@
+namespaces:
+  runconduit:
+    registry_host: https://gcr.io
+  google-samples:
+    registry_host: https://gcr.io
+  kubernetes-helm:
+    registry_host: https://gcr.io
+  k8s-minikube:
+    registry_host: https://gcr.io
+  tf-on-k8s-dogfood:
+    registry_host: https://gcr.io
+  spinnaker-marketplace:
+    registry_host: https://gcr.io
+  google-containers:
+    registry_host: https://gcr.io
+  distroless:
+    registry_host: https://gcr.io
+  istio-release:
+    registry_host: https://gcr.io
+  linkerd-io:
+    registry_host: https://gcr.io
+  cloud-datalab:
+    registry_host: https://gcr.io
+  kubeflow-images-public:
+    registry_host: https://gcr.io
+  cloudsql-docker:
+    registry_host: https://gcr.io
+  google-appengine:
+    registry_host: https://gcr.io
+  kaniko-project:
+    registry_host: https://gcr.io
+projects:
+  kube-apiserver-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: kube-apiserver-amd64
+  kube-controller-manager-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: kube-controller-manager-amd64
+  kube-scheduler-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: kube-scheduler-amd64
+  etcd-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: etcd-amd64
+  pause-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: pause-amd64
+  kube-proxy-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: kube-proxy-amd64
+  k8s-dns-sidecar-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: k8s-dns-sidecar-amd64
+  k8s-dns-kube-dns-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: k8s-dns-kube-dns-amd64
+  k8s-dns-dnsmasq-nanny-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: k8s-dns-dnsmasq-nanny-amd64
+  kubernetes-dashboard-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: kubernetes-dashboard-amd64
+  heapster-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: heapster-amd64
+  heapster-grafana-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: heapster-grafana-amd64
+  heapster-influxdb-amd64:
+    registry_host: https://k8s.gcr.io
+    project_name: heapster-influxdb-amd64
+  elasticsearch:
+    registry_host: https://k8s.gcr.io
+    project_name: elasticsearch
+  fluentd-elasticsearch:
+    registry_host: https://k8s.gcr.io
+    project_name: fluentd-elasticsearch

@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_celery_results',
+    'project.apps.ProjectConfig'
 ]
 
 MIDDLEWARE = [
@@ -115,9 +116,10 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # Sync Task Config
+TARGET_CONFIG_FILE = os.path.join(BASE_DIR, "target.yml")
 FLUSH_NAMESPACE_MAX_TIME = 60 * 60 * 24
 FLUSH_PROJECT_MAX_TIME = 60 * 60 * 24
-MAX_MIGRATE_TASK_PRE_PROJECT = 10
+MAX_MIGRATE_TASK_PRE_PROJECT = 15
 TARGET_REGISTRY_URL = "daocloud.io"
 TARGET_REGISTRY_NAMESPACE = "gcr-mirror"
 TARGET_REGISTRY_USERNAME = os.getenv("TARGET_REGISTRY_USERNAME")
