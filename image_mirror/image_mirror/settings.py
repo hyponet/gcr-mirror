@@ -24,9 +24,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'lz(+%y+yw!6co(u+-48q_l@n^v^uc2=*y$ne7p9w%%^n=wel_o'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["gcr.updev.cn"]
 
 # Application definition
 
@@ -134,4 +134,4 @@ TARGET_REGISTRY_NAMESPACE = "gcr-mirror"
 TARGET_REGISTRY_USERNAME = os.getenv("TARGET_REGISTRY_USERNAME")
 TARGET_REGISTRY_PASSWORD = os.getenv("TARGET_REGISTRY_PASSWORD")
 CELERY_RESULT_BACKEND = 'django-db'
-CELERY_BROKER_URL = os.getenv("celery_broker_url", "amqp://guest:guest@192.168.31.7:30572")
+CELERY_BROKER_URL = os.getenv("celery_broker_url")
