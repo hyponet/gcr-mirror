@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -22,9 +24,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'lz(+%y+yw!6co(u+-48q_l@n^v^uc2=*y$ne7p9w%%^n=wel_o'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = str(os.getenv("DEBUG")).upper() in ["T", "TRUE", "1"]
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["gcr.updev.cn"]
 
 # Application definition
 
@@ -75,7 +77,7 @@ WSGI_APPLICATION = 'image_mirror.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': os.path.join(BASE_DIR, 'data/db.sqlite3'),
     }
 }
 
@@ -114,6 +116,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'data/static')
+
+# Sentry
+if os.getenv("CONTROLLER_SENTRY_DSN"):
+    sentry_sdk.init(
+        dsn=os.getenv("CONTROLLER_SENTRY_DSN"),
+        integrations=[DjangoIntegration()]
+    )
 
 # Sync Task Config
 TARGET_CONFIG_FILE = os.path.join(BASE_DIR, "target.yml")
@@ -125,4 +135,4 @@ TARGET_REGISTRY_NAMESPACE = "gcr-mirror"
 TARGET_REGISTRY_USERNAME = os.getenv("TARGET_REGISTRY_USERNAME")
 TARGET_REGISTRY_PASSWORD = os.getenv("TARGET_REGISTRY_PASSWORD")
 CELERY_RESULT_BACKEND = 'django-db'
-CELERY_BROKER_URL = os.getenv("celery_broker_url", "amqp://guest:guest@192.168.31.7:30572")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL")

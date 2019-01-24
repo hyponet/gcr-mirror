@@ -1,13 +1,19 @@
 import threading
+import logging
 from django.contrib import admin
 
 from .models import Namespace, Project, Tag
+
+LOG = logging.getLogger(__name__)
 
 
 def flush_namespace(modeladmin, request, queryset):
     def _async_flush(namespaces):
         for n in namespaces:
-            n.update_projects()
+            try:
+                n.update_projects()
+            except Exception as e:
+                LOG.error(e, exec_info=True)
 
     _namespaces = queryset.all()
     threading.Thread(target=_async_flush, args=(_namespaces,)).start()
@@ -16,7 +22,10 @@ def flush_namespace(modeladmin, request, queryset):
 def flush_project(modeladmin, request, queryset):
     def _async_flush(projects):
         for p in projects:
-            p.update_project_tags()
+            try:
+                p.update_project_tags()
+            except Exception as e:
+                LOG.error(e, exec_info=True)
 
     _projects = queryset.all()
     threading.Thread(target=_async_flush, args=(_projects,)).start()
@@ -25,7 +34,10 @@ def flush_project(modeladmin, request, queryset):
 def try_migrate_image(modeladmin, request, queryset):
     def _async_flush(tags):
         for t in tags:
-            t.migrate()
+            try:
+                t.migrate()
+            except Exception as e:
+                LOG.error(e, exec_info=True)
 
     _tags = queryset.all()
     threading.Thread(target=_async_flush, args=(_tags,)).start()
