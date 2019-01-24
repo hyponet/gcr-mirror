@@ -80,6 +80,7 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ["name", "source_image", "target_image", "tag_count", "update_time"]
     search_fields = ["name", "source_image", "target_image"]
     actions = [flush_project]
+    ordering = ("registry_namespace", "name")
 
 
 class TagAdmin(admin.ModelAdmin):
@@ -93,6 +94,7 @@ class TagAdmin(admin.ModelAdmin):
     search_fields = ["image_url"]
     list_filter = ["status"]
     actions = [try_migrate_image]
+    ordering = ("-updated_at",)
 
     def has_change_permission(self, request, obj=None):
         return False

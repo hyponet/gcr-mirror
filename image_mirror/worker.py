@@ -10,7 +10,7 @@ from image_mirror.celery import app as celery_app
 DOCKER_SOCK = "unix://var/run/docker.sock"
 docker_client = docker.DockerClient(base_url=DOCKER_SOCK)
 LOG = logging.getLogger(__name__)
-TASK_RETRY_DELAY_TIME = 60 * 10
+TASK_RETRY_DELAY_TIME = 60
 
 
 class ImageError(Exception):
@@ -32,7 +32,7 @@ class ImageTagError(ImageError):
     error_id = "IMAGE_TAG_ERROR"
 
 
-@celery_app.task(bind=True, default_retry_delay=TASK_RETRY_DELAY_TIME, max_retries=3)
+@celery_app.task(bind=True, default_retry_delay=TASK_RETRY_DELAY_TIME, max_retries=10)
 def sync_image(self, project_id, tag_id):
     try:
         project = Project.objects.get(id=project_id)
@@ -76,7 +76,7 @@ def pull_image_from_source(project, tag):
             LOG.debug(line)
             if "error" in line:
                 raise ImagePullError("Pull image {} get error log: {}".format(image_url, line))
-    except DockerException as e:
+    except Exception as e:
         raise ImagePullError("Image {} pull error: {}".format(image_url, e))
 
 
@@ -95,6 +95,6 @@ def push_image_to_target(project, tag):
             LOG.debug(line)
             if "error" in line:
                 raise ImagePushError("Push image {} get error log: {}".format(image_url, line))
-    except DockerException as e:
+    except Exception as e:
         raise ImagePushError("Image {} push error: {}".format(image_url, e))
     tag.image_url = image_url

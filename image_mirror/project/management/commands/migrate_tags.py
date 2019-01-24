@@ -4,7 +4,7 @@ from project.models import Project, Tag
 
 
 class Command(BaseCommand):
-    help = 'Reload sync source config.'
+    help = 'Send SYNC task to worker.'
 
     def handle(self, *args, **options):
         all_projects = Project.objects.all()

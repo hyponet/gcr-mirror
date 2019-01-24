@@ -237,14 +237,25 @@ class Project(models.Model):
 
 class TagManager(models.Manager):
     def create_tag_by_project(self, project, name):
+        image_url = "{}:{}".format(project.target_image, name)
         try:
-            self.get(project_id=project.id, name=name)
+            tag = self.get(project_id=project.id, name=name)
+            tag.image_url = image_url
+            tag.save()
             return
         except models.ObjectDoesNotExist:
             LOG.debug("Tag[{}] not found in Project {}, try create.".format(name, project.name))
 
-        self.create(name=name, project_id=project.id)
+        self.create(name=name, project_id=project.id, image_url=image_url)
         LOG.info("Created Tag: {}:{}".format(project.name, name))
+
+    def retry_migrate_tasks(self):
+        tags = self.filter(status="error").all()
+        count = 0
+        for t in tags:
+            t.migrate()
+            count += 1
+        LOG.info("Finish send {} SYNC error task to Worker".format(count))
 
     def migrate_project_images(self, project_id):
         tags = self.filter(project_id=project_id) \
