@@ -97,3 +97,4 @@ def push_image_to_target(project, tag):
                 raise ImagePushError("Push image {} get error log: {}".format(image_url, line))
     except DockerException as e:
         raise ImagePushError("Image {} push error: {}".format(image_url, e))
+    tag.image_url = image_url
