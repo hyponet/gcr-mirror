@@ -1,4 +1,5 @@
 from __future__ import absolute_import, unicode_literals
+import time
 import docker
 from docker.errors import DockerException
 from django.conf import settings
@@ -40,14 +41,24 @@ def sync_image(self, project_id, tag_id):
     except models.ObjectDoesNotExist as e:
         LOG.error(e, exc_info=True)
         return
+    try_time = 50
     tag.status = "syncing"
     tag.save()
     try:
-        pull_image_from_source(project, tag)
-        tag_image(project, tag)
-        push_image_to_target(project, tag)
-        tag.status = "synced"
-        LOG.info("Project {} Tag {} synced".format(project.name, tag.name))
+        while True:
+            try:
+                try_time -= 1
+                time.sleep(TASK_RETRY_DELAY_TIME)
+                pull_image_from_source(project, tag)
+                tag_image(project, tag)
+                push_image_to_target(project, tag)
+                tag.status = "synced"
+                LOG.info("Project {} Tag {} synced".format(project.name, tag.name))
+                break
+            except Exception as e:
+                if try_time:
+                    continue
+                raise e
     except ImageError as exc:
         tag.status = "error"
         tag.error_message = exc.error_msg
