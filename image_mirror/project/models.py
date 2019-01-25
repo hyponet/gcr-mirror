@@ -253,6 +253,8 @@ class TagManager(models.Manager):
         tags = self.filter(status="error").all()
         count = 0
         for t in tags:
+            t.status = "pending"
+            t.save()
             t.migrate()
             count += 1
         LOG.info("Finish send {} SYNC error task to Worker".format(count))
