@@ -188,6 +188,12 @@ class Project(models.Model):
             self.project_name, namespace=self.registry_namespace or None)
         for t in tags:
             Tag.objects.create_tag_by_project(self, t)
+        try:
+            latest = Tag.objects.get(project_id=self.id, name="latest")
+            latest.status = "pending"
+            latest.save()
+        except models.ObjectDoesNotExist:
+            pass
         self.save()
         LOG.info("Updated project: {}".format(self.name))
 
